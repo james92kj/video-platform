@@ -100,6 +100,7 @@ func (h *VideoHandler) GetVideo(w http.ResponseWriter, r *http.Request) {
 
 	video, err := h.store.GetByID(id)
 	if err != nil {
+		h.log.Error(fmt.Sprintf("Failed to decode request body: %v", err))
 		h.sendError(w, "Video Not Found", http.StatusBadRequest)
 		return
 	}
@@ -116,6 +117,7 @@ func (h *VideoHandler) ListVideos(w http.ResponseWriter, r *http.Request) {
 
 	videos, err := h.store.List()
 	if err != nil {
+		h.log.Error(fmt.Sprintf("Failed to decode request body: %v", err))
 		h.sendError(w, "No videos Found", http.StatusBadRequest)
 		return
 	}

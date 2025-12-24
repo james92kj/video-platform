@@ -45,7 +45,7 @@ func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
 
 func (r *VideoRepository) GetByID(id string) (*models.Video, error) {
 	query := `
-		SELECT id, user_id, title, description, status, file_size, duration, created_at, updated_at
+		SELECT id, user_id, title, description, status, file_size, duration,original_filename, created_at, updated_at
 		FROM videos WHERE id = $1
 	`
 
@@ -70,7 +70,7 @@ func (r *VideoRepository) GetByID(id string) (*models.Video, error) {
 
 func (r *VideoRepository) List() ([]*models.Video, error) {
 	query := `
-		SELECT id, user_id, title, description, status, file_size, duration, created_at, updated_at
+		SELECT id, user_id, title, description, status, file_size, duration, original_filename, created_at, updated_at
 		FROM videos
 	`
 
