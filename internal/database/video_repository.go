@@ -20,8 +20,8 @@ func NewVideoRespository(db *DB) *VideoRepository {
 
 func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
 	query := `
-		INSERT INTO (id, user_id, title, description, status, file_size, duration, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO videos(id, user_id, title, description, status, file_size, duration, original_filename, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 
 	_, err := r.db.conn.Exec(query,
@@ -32,6 +32,7 @@ func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
 		video.Status,
 		video.FileSize,
 		video.Duration,
+		video.OriginalFileName,
 		video.CreatedAt,
 		video.UpdatedAt,
 	)
@@ -57,6 +58,7 @@ func (r *VideoRepository) GetByID(id string) (*models.Video, error) {
 		&video.Status,
 		&video.FileSize,
 		&video.Duration,
+		&video.OriginalFileName,
 		&video.CreatedAt,
 		&video.UpdatedAt,
 	)
@@ -88,6 +90,7 @@ func (r *VideoRepository) List() ([]*models.Video, error) {
 			&video.Status,
 			&video.FileSize,
 			&video.Duration,
+			&video.OriginalFileName,
 			&video.CreatedAt,
 			&video.UpdatedAt,
 		)

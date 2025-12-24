@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -62,18 +63,20 @@ func (h *VideoHandler) CreateMetadata(w http.ResponseWriter, r *http.Request) {
 	}
 
 	video := &models.Video{
-		ID:          uuid.New().String(),
-		Title:       req.Title,
-		Description: req.Description,
-		UserID:      "user-123",
-		Status:      "pending",
-		FileSize:    req.FileSize,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:               uuid.New().String(),
+		Title:            req.Title,
+		Description:      req.Description,
+		UserID:           "550e8400-e29b-41d4-a716-446655440000",
+		Status:           "pending",
+		OriginalFileName: req.OriginalFileName,
+		FileSize:         req.FileSize,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
 	}
 
 	if _, err := h.store.Create(video); err != nil {
-		h.sendError(w, "Failed to create video", http.StatusInternalServerError)
+		h.log.Error(fmt.Sprintf("Failed to decode request body: %v", err))
+		h.sendError(w, "Failed to create Metadata", http.StatusInternalServerError)
 		return
 	}
 
