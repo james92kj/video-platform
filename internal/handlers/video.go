@@ -14,15 +14,20 @@ import (
 )
 
 type VideoHandler struct {
-	store storage.VideoStore
-	log   *logger.Logger
+	store    storage.VideoStore
+	log      *logger.Logger
+	s3client *storage.S3Client
 }
 
-func NewVideoHandler(store storage.VideoStore, log *logger.Logger) *VideoHandler {
+func NewVideoHandler(store storage.VideoStore,
+	log *logger.Logger,
+	s3client *storage.S3Client,
+) *VideoHandler {
 
 	return &VideoHandler{
-		store: store,
-		log:   log,
+		store:    store,
+		log:      log,
+		s3client: s3client,
 	}
 }
 
@@ -130,4 +135,53 @@ func (h *VideoHandler) ListVideos(w http.ResponseWriter, r *http.Request) {
 		"count":   len(videos),
 		"data":    videos,
 	})
+}
+
+func (h *VideoHandler) GetUploadUrl(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+	h.log.Info("===== GetUploadUrl Handler Started ====")
+
+	// Step 2: Parse request body
+	var req models.GetUploadUrlRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.log.Error(fmt.Sprintf("Failed to decode request body: %v", err))
+		h.sendError(w, "Invalid Request", http.StatusBadRequest)
+		return
+	}
+
+	h.log.Info(fmt.Sprintf("Decoded Request: Fileame=%s, FileSize=%d", req.FileName, req.FileSize))
+
+	// Next generate the Pre-signed Url
+	videoID := uuid.New().String()
+	s3Key := fmt.Sprintf("upload/%s/%s", videoID, req.FileName)
+	h.log.Info(fmt.Sprintf("Generated VideoID=%s, S3Key=%s", videoID, s3Key))
+
+	// Generate the Pre-signed URL
+	ctx := r.Context()
+	uploadURL, err := h.s3client.GeneratePreSignedUrl(ctx, s3Key, 60)
+	if err != nil {
+		h.log.Error(fmt.Sprintf("Failed to generate upload url: %v", err))
+		h.sendError(w, "Failed to generate upload url", http.StatusInternalServerError)
+		return
+	}
+	h.log.Info(fmt.Sprintf("Generated upload url: %s", uploadURL))
+
+	// Build the response object
+	response := models.UploadURLResponse{
+		Success:   true,
+		UploadURL: uploadURL,
+		VideoID:   videoID,
+		Key:       s3Key,
+		ExpiresIn: 60 * 60,
+		Message:   "Upload URL Generated Successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.log.Info(fmt.Sprintf("Response Sent For VideoID: %s", videoID))
 }

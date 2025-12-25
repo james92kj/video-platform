@@ -27,3 +27,16 @@ type VideoResponse struct {
 	Message string `json:"message"`
 	Data    *Video `json:"data,omitempty"`
 }
+
+type GetUploadUrlRequest struct {
+	FileName string `json:"file_name"`
+	FileSize int64  `json:"file_size"`
+}
+type UploadURLResponse struct {
+	Success   bool   `json:"success"`
+	UploadURL string `json:"upload_url"`
+	VideoID   string `json:"video_id"`
+	Key       string `json:"key"`
+	ExpiresIn int64  `json:"expires_in"`
+	Message   string `json:"message"`
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/james92kj/video-platform/internal/database"
+	"github.com/james92kj/video-platform/internal/storage"
 	"net/http"
 
 	"github.com/james92kj/video-platform/internal/config"
@@ -27,12 +28,19 @@ func main() {
 	defer db.Close()
 	log.Info("Connected to database")
 
+	// Initialize the s3 client
+	s3_client, err := storage.NewS3Client(log)
+	if err != nil {
+		log.Fatal("Error connecting to s3 client", err)
+	}
+
 	videoRepo := database.NewVideoRespository(db)
-	videoHandler := handlers.NewVideoHandler(videoRepo, log)
+	videoHandler := handlers.NewVideoHandler(videoRepo, log, s3_client)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/api/v1/videos/metadata", videoHandler.CreateMetadata)
+	http.HandleFunc("/api/v1/videos/upload-url", videoHandler.GetUploadUrl)
 	http.HandleFunc("/api/v1/videos/", videoHandler.GetVideo)
 	http.HandleFunc("/api/v1/videos", videoHandler.ListVideos)
 
