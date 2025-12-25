@@ -25,6 +25,7 @@ go build -o api cmd/api/main.go
 - `POST /api/v1/videos/metadata` - Create video metadata
 - `GET /api/v1/videos/{id}` - Get video by ID
 - `GET /api/v1/videos` - List all videos
+- `GET /api/v1/videos/GetUploadURL` - Generate the Pre-signed URL
 
 ## Configuration
 
