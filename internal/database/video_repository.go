@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/james92kj/video-platform/internal/models"
 	"github.com/james92kj/video-platform/internal/storage"
@@ -19,9 +20,17 @@ func NewVideoRespository(db *DB) *VideoRepository {
 }
 
 func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
+
+	var s3KeyValue interface{}
+	if video.S3Key != nil {
+		s3KeyValue = *video.S3Key
+	} else {
+		s3KeyValue = nil
+	}
+
 	query := `
-		INSERT INTO videos(id, user_id, title, description, status, file_size, duration, original_filename, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO videos(id, user_id, title, description, status, file_size, duration, original_filename,s3_key, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11)
 	`
 
 	_, err := r.db.conn.Exec(query,
@@ -33,6 +42,7 @@ func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
 		video.FileSize,
 		video.Duration,
 		video.OriginalFileName,
+		s3KeyValue,
 		video.CreatedAt,
 		video.UpdatedAt,
 	)
@@ -45,10 +55,11 @@ func (r *VideoRepository) Create(video *models.Video) (*models.Video, error) {
 
 func (r *VideoRepository) GetByID(id string) (*models.Video, error) {
 	query := `
-		SELECT id, user_id, title, description, status, file_size, duration,original_filename, created_at, updated_at
+		SELECT id, user_id, title, description, status, file_size, duration,original_filename,s3_key, created_at, updated_at
 		FROM videos WHERE id = $1
 	`
 
+	var s3Key sql.NullString
 	video := &models.Video{}
 	err := r.db.conn.QueryRow(query, id).Scan(
 		&video.ID,
@@ -59,18 +70,24 @@ func (r *VideoRepository) GetByID(id string) (*models.Video, error) {
 		&video.FileSize,
 		&video.Duration,
 		&video.OriginalFileName,
+		&s3Key,
 		&video.CreatedAt,
 		&video.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get video by id: %w", err)
 	}
+
+	if s3Key.Valid {
+		video.S3Key = &s3Key.String
+	}
+
 	return video, nil
 }
 
 func (r *VideoRepository) List() ([]*models.Video, error) {
 	query := `
-		SELECT id, user_id, title, description, status, file_size, duration, original_filename, created_at, updated_at
+		SELECT id, user_id, title, description, status, file_size, duration, original_filename,s3_key, created_at, updated_at
 		FROM videos
 	`
 
@@ -81,6 +98,8 @@ func (r *VideoRepository) List() ([]*models.Video, error) {
 	}
 
 	for rows.Next() {
+
+		var s3Key sql.NullString
 		video := &models.Video{}
 		err := rows.Scan(
 			&video.ID,
@@ -91,12 +110,18 @@ func (r *VideoRepository) List() ([]*models.Video, error) {
 			&video.FileSize,
 			&video.Duration,
 			&video.OriginalFileName,
+			&s3Key,
 			&video.CreatedAt,
 			&video.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch the videos: %w", err)
 		}
+
+		if s3Key.Valid {
+			video.S3Key = &s3Key.String
+		}
+
 		videos = append(videos, video)
 	}
 

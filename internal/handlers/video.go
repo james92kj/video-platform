@@ -3,25 +3,24 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/james92kj/video-platform/internal/logger"
 	"github.com/james92kj/video-platform/internal/models"
-	"github.com/james92kj/video-platform/internal/storage"
+	storage2 "github.com/james92kj/video-platform/internal/storage"
+	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type VideoHandler struct {
-	store    storage.VideoStore
+	store    storage2.VideoStore
 	log      *logger.Logger
-	s3client *storage.S3Client
+	s3client *storage2.S3Client
 }
 
-func NewVideoHandler(store storage.VideoStore,
+func NewVideoHandler(store storage2.VideoStore,
 	log *logger.Logger,
-	s3client *storage.S3Client,
+	s3client *storage2.S3Client,
 ) *VideoHandler {
 
 	return &VideoHandler{
@@ -137,6 +136,19 @@ func (h *VideoHandler) ListVideos(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *VideoHandler) HandleUploadComplete(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Webhook received")); err != nil {
+		h.log.Error(fmt.Sprintf("Failed to write response: %v", err))
+	}
+}
+
 func (h *VideoHandler) GetUploadUrl(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -168,6 +180,28 @@ func (h *VideoHandler) GetUploadUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.log.Info(fmt.Sprintf("Generated upload url: %s", uploadURL))
+
+	// Build the video object
+	video := &models.Video{
+		ID:               uuid.New().String(),
+		Title:            req.FileName,
+		Description:      "",
+		UserID:           "550e8400-e29b-41d4-a716-446655440000",
+		Status:           "pending",
+		S3Key:            &s3Key,
+		OriginalFileName: req.FileName,
+		FileSize:         req.FileSize,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	if _, err := h.store.Create(video); err != nil {
+		h.log.Error(fmt.Sprintf("Failed to store the video data: %v", err))
+		h.sendError(w, "Failed to store the video data", http.StatusInternalServerError)
+		return
+	}
+
+	h.log.Info(fmt.Sprintf("Video Created: %s", video.ID))
 
 	// Build the response object
 	response := models.UploadURLResponse{

@@ -21,10 +21,32 @@ go build -o api cmd/api/main.go
 
 ## API Endpoints
 
-- `GET /health` - Health check
-- `POST /api/v1/videos/metadata` - Create video metadata
-- `GET /api/v1/videos/{id}` - Get video by ID
-- `GET /api/v1/videos` - List all videos
+**Health Check**
+```bash
+curl http://localhost:8080/health
+```
+
+**Create Video Metadata**
+```bash
+curl -X POST http://localhost:8080/api/v1/videos/metadata \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "My Video",
+    "description": "Video description",
+    "file_size": 1024000,
+    "original_filename": "video.mp4"
+  }'
+```
+
+**Get Video by ID**
+```bash
+curl http://localhost:8080/api/v1/videos/{video-id}
+```
+
+**List All Videos**
+```bash
+curl http://localhost:8080/api/v1/videos
+```
 
 ## Configuration
 

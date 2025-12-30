@@ -10,6 +10,7 @@ type Video struct {
 	Status           string    `json:"status"`
 	FileSize         int64     `json:"file_size"`
 	OriginalFileName string    `json:"original_filename"`
+	S3Key            *string   `json:"s3_key,omitempty"`
 	Duration         int       `json:"duration"`
 	CreatedAt        time.Time `json:created_at`
 	UpdatedAt        time.Time `json:updated_at`

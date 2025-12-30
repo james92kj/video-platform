@@ -1,4 +1,4 @@
-package logger 
+package logger
 
 import (
 	"log"
@@ -10,17 +10,15 @@ type Logger struct {
 }
 
 func New() *Logger {
-	return &Logger {
+	return &Logger{
 		Logger: log.New(os.Stdout, "VIDEO-API:", log.LstdFlags),
 	}
 }
 
 func (l *Logger) Info(msg string) {
-	l.Printf("INFO: %s",msg)
+	l.Printf("INFO: %s", msg)
 }
 
 func (l *Logger) Error(msg string) {
-	l.Printf("ERROR: %s",msg)
+	l.Printf("ERROR: %s", msg)
 }
-
-

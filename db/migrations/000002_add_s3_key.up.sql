@@ -1,0 +1,1 @@
+ALTER TABLE videos ADD COLUMN s3_key VARCHAR(500);

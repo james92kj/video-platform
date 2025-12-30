@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/james92kj/video-platform/internal/database"
-	"github.com/james92kj/video-platform/internal/storage"
-	"net/http"
-
 	"github.com/james92kj/video-platform/internal/config"
+	database2 "github.com/james92kj/video-platform/internal/database"
 	"github.com/james92kj/video-platform/internal/handlers"
 	"github.com/james92kj/video-platform/internal/logger"
+	"github.com/james92kj/video-platform/internal/storage"
+	"net/http"
 )
 
 func main() {
@@ -20,7 +19,7 @@ func main() {
 
 	// Connect to Postgres
 	connection_str := "postgresql://postgres:postgres@localhost:5432/video-platform?sslmode=disable"
-	db, err := database.New(connection_str)
+	db, err := database2.New(connection_str)
 
 	if err != nil {
 		log.Fatal("Error connecting to database", err)
@@ -34,22 +33,43 @@ func main() {
 		log.Fatal("Error connecting to s3 client", err)
 	}
 
-	videoRepo := database.NewVideoRespository(db)
+	videoRepo := database2.NewVideoRespository(db)
 	videoHandler := handlers.NewVideoHandler(videoRepo, log, s3_client)
 
-	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/api/v1/videos/metadata", videoHandler.CreateMetadata)
-	http.HandleFunc("/api/v1/videos/upload-url", videoHandler.GetUploadUrl)
-	http.HandleFunc("/api/v1/videos/", videoHandler.GetVideo)
-	http.HandleFunc("/api/v1/videos", videoHandler.ListVideos)
+	// Add CORS middleware
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/api/v1/videos/metadata", videoHandler.CreateMetadata)
+	mux.HandleFunc("/api/v1/videos/upload-url", videoHandler.GetUploadUrl)
+	mux.HandleFunc("/api/v1/videos/", videoHandler.GetVideo)
+	mux.HandleFunc("/api/v1/videos", videoHandler.ListVideos)
+
+	// Wrap with CORS
+	handler := enableCORS(mux)
 
 	port := ":" + cfg.Port
 	log.Info(fmt.Sprintf("Server running on http://localhost%s\n", port))
 
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(port, handler); err != nil {
 		log.Error(fmt.Sprintf("Server failed: %v", err))
 	}
+}
+
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
