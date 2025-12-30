@@ -21,6 +21,7 @@ go build -o api cmd/api/main.go
 
 ## API Endpoints
 
+<<<<<<< HEAD
 **Health Check**
 ```bash
 curl http://localhost:8080/health
@@ -47,6 +48,13 @@ curl http://localhost:8080/api/v1/videos/{video-id}
 ```bash
 curl http://localhost:8080/api/v1/videos
 ```
+- `GET /health` - Health check
+- `POST /api/v1/videos/metadata` - Create video metadata
+- `GET /api/v1/videos/{id}` - Get video by ID
+- `GET /api/v1/videos` - List all videos
+- `GET /api/v1/videos/GetUploadURL` - Generate the Pre-signed URL
+- `GET /api/v1/videos/upload-url` - Upload the video
+
 
 ## Configuration
 
