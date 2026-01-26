@@ -34,21 +34,27 @@ func (h *VideoHandler) sendSuccess(w http.ResponseWriter, message string, data *
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(models.VideoResponse{
+	err := json.NewEncoder(w).Encode(models.VideoResponse{
 		Success: true,
 		Message: message,
 		Data:    data,
 	})
+	if err != nil {
+		return
+	}
 }
 
 func (h *VideoHandler) sendError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	json.NewEncoder(w).Encode(models.VideoResponse{
+	err := json.NewEncoder(w).Encode(models.VideoResponse{
 		Success: false,
 		Message: message,
 	})
+	if err != nil {
+		return
+	}
 
 }
 
@@ -147,6 +153,56 @@ func (h *VideoHandler) HandleUploadComplete(w http.ResponseWriter, r *http.Reque
 	if _, err := w.Write([]byte("Webhook received")); err != nil {
 		h.log.Error(fmt.Sprintf("Failed to write response: %v", err))
 	}
+
+	h.log.Info("----- Upload Complete Webhook Request Received -----")
+
+	// Parse the webhook payload
+	var event struct {
+		VideoID string `json:"video_id"`
+		S3Key   string `json:"s3_key"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		h.log.Error(fmt.Sprintf("Failed to decode webhook payload: %v", err))
+		h.sendError(w, "Failed to decode webhook payload", http.StatusBadRequest)
+		return
+	}
+
+	h.log.Info(fmt.Sprintf("Upload Complete for VideoID: %s, S3Key: %s", event.VideoID, event.S3Key))
+
+	// Get the video from database
+	video, err := h.store.GetByID(event.VideoID)
+	if err != nil {
+		h.log.Error(fmt.Sprintf("No video found under the VideoID: %s", event.VideoID))
+		h.sendError(w, "Video Not Found", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Update video status to "uploaded"
+	video.Status = "uploaded"
+	video.S3Key = &event.S3Key
+	video.UpdatedAt = time.Now()
+
+	// Save to database
+	if _, err := h.store.Update(video); err != nil {
+		h.log.Error(fmt.Sprintf("Failed to update video: %v", err))
+		h.sendError(w, "Issue in saving the video", http.StatusBadRequest)
+		return
+	}
+	h.sendSuccess(w, "Video Uploaded", video)
+
+	h.log.Info(fmt.Sprintf("Ready to start processing video:%s", video.ID))
+
+	// Respond with Success
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"video_id": video.ID,
+		"status":   "Upload Acknowledged",
+		"message":  "Video uploaded complete. Will start processing the video shortly",
+	})
+
 }
 
 func (h *VideoHandler) GetUploadUrl(w http.ResponseWriter, r *http.Request) {

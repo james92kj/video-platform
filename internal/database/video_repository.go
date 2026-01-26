@@ -127,3 +127,41 @@ func (r *VideoRepository) List() ([]*models.Video, error) {
 
 	return videos, nil
 }
+
+func (r *VideoRepository) Update(video *models.Video) (*models.Video, error) {
+
+	query := `
+      UPDATE videos
+      SET title = $1,
+          description = $2,
+          status = $3,
+          file_size = $4,
+          duration = $5,
+          s3__key = $6,
+          updated_at = $7
+      WHERE id = $8
+    `
+
+	var s3KeyValue interface{}
+	if video.S3Key != nil {
+		s3KeyValue = *video.S3Key
+	} else {
+		s3KeyValue = nil
+	}
+
+	_, err := r.db.conn.Exec(query,
+		video.Title,
+		video.Description,
+		video.Status,
+		video.FileSize,
+		video.Duration,
+		s3KeyValue,
+		video.UpdatedAt,
+		video.ID,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to update video: %w", err)
+	}
+	return video, nil
+}

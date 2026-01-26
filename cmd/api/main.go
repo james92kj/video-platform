@@ -44,6 +44,7 @@ func main() {
 	mux.HandleFunc("/api/v1/videos/upload-url", videoHandler.GetUploadUrl)
 	mux.HandleFunc("/api/v1/videos/", videoHandler.GetVideo)
 	mux.HandleFunc("/api/v1/videos", videoHandler.ListVideos)
+	mux.HandleFunc("/api/v1/videos/upload-complete", videoHandler.HandleUploadComplete)
 
 	// Wrap with CORS
 	handler := enableCORS(mux)

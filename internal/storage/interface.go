@@ -8,4 +8,5 @@ type VideoStore interface {
 	Create(video *models.Video) (*models.Video, error)
 	GetByID(id string) (*models.Video, error)
 	List() ([]*models.Video, error)
+	Update(video *models.Video) (*models.Video, error)
 }
